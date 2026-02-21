@@ -11,11 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-// 2. Include your existing connection
 require_once 'config.php'; 
 
-// --- 3. ROUTING SETUP ---
-$method = $_SERVER['REQUEST_METHOD']; // <-- This defines it
+// --- 2. ROUTING SETUP ---
+$method = $_SERVER['REQUEST_METHOD'];
 $url = isset($_GET['url']) ? rtrim($_GET['url'], '/') : '';
 $parts = explode('/', $url);
 $resource = $parts[0] ?? null;
@@ -27,7 +26,7 @@ if ($resource !== 'products') {
     exit;
 }
 
-// --- 4. RESTFUL METHODS ---
+// --- 3. RESTFUL METHODS ---
 // Switch on the $method variable we defined above
 switch ($method) { 
     case 'GET':
