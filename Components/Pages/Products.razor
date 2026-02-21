@@ -1,0 +1,113 @@
+@page "/products"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>Product Management</PageTitle>
+
+<div class="container mt-4">
+    <h3>Product Management</h3>
+
+    <!-- Add Product Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>@(currentProduct.Id == 0 ? "Add New Product" : "Edit Product")</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Item Name" @bind="currentProduct.Item" />
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control" placeholder="Price" 
+                           value="@priceDisplay"
+                           @onchange="OnPriceChanged" />
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control" placeholder="Qty"
+                           value="@qtyDisplay"
+                           @onchange="OnQtyChanged" />
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" @onclick="SaveProduct">Save</button>
+                    @if (currentProduct.Id != 0) {
+                        <button class="btn btn-secondary ms-2" @onclick="ClearForm">Cancel</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Table -->
+    @if (products == null) {
+        <p><em>Loading products from HelioHost...</em></p>
+    } else {
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in products) {
+                    <tr>
+                        <td>@p.Id</td>
+                        <td>@p.Item</td>
+                        <td>@p.Price.ToString("C")</td>
+                        <td>@p.Quantity</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditProduct(p)">Edit</button>
+                            <button class="btn btn-sm btn-danger ms-2" @onclick="() => DeleteProduct(p.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Product>? products;
+    private Product currentProduct = new();
+    private string apiBase = "https://ctugenrollment.helioho.st/api/products";
+
+    private string priceDisplay => currentProduct.Price == 0 ? "" : currentProduct.Price.ToString();
+    private string qtyDisplay => currentProduct.Quantity == 0 ? "" : currentProduct.Quantity.ToString();
+
+    private void OnPriceChanged(ChangeEventArgs e) {
+        if (decimal.TryParse(e.Value?.ToString(), out var val))
+            currentProduct.Price = val;
+    }
+
+    private void OnQtyChanged(ChangeEventArgs e) {
+        if (int.TryParse(e.Value?.ToString(), out var val))
+            currentProduct.Quantity = val;
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadProducts();
+
+    private async Task LoadProducts() => 
+        products = await Http.GetFromJsonAsync<List<Product>>(apiBase);
+
+    private async Task SaveProduct() {
+        if (currentProduct.Id == 0) {
+            await Http.PostAsJsonAsync(apiBase, currentProduct);
+        } else {
+            await Http.PutAsJsonAsync($"{apiBase}/{currentProduct.Id}", currentProduct);
+        }
+        ClearForm();
+        await LoadProducts();
+    }
+
+    private async Task DeleteProduct(int id) {
+        await Http.DeleteAsync($"{apiBase}/{id}");
+        await LoadProducts();
+    }
+
+    private void EditProduct(Product p) => currentProduct = new Product { 
+        Id = p.Id, Item = p.Item, Price = p.Price, Quantity = p.Quantity 
+    };
+
+    private void ClearForm() => currentProduct = new();
+}
